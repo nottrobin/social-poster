@@ -97,7 +97,7 @@ post_response.raise_for_status()
 
 soup = BeautifulSoup(post_response.text, "html.parser")
 item_id = soup.select(
-    "table.itemlist tr:nth-child(2) td.subtext a:-soup-contains('discuss')"
+    "table table tr:nth-child(2) td.subtext a:-soup-contains('discuss')"
 )[0].get("href")[8:]
 
 print(
