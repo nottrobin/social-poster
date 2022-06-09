@@ -1,18 +1,15 @@
 #! /usr/bin/env python3
 
 """
-Post an article to news.ycombinator.com ("hacker news")
-
-Copied and modified from David Bieber:
-https://davidbieber.com/snippets/2020-05-02-hackernews-submit/
+Post a tweet to Twitter
 """
 
 # Standard library
 import argparse
 import os
 
-# Packages
-import tweepy
+# Local
+from posters import post_to_twitter
 
 
 # Parse arguments
@@ -79,24 +76,14 @@ if not args.get("access_token_secret"):
     exit(parser.print_help())
 
 
-# Auth
+# Post to twitter
 # ===
-
-api = tweepy.API(
-    tweepy.OAuth1UserHandler(
-        args["api_key"],
-        args["api_key_secret"],
-        args["access_token"],
-        args["access_token_secret"],
-    )
+post_to_twitter(
+    args["tweet"],
+    args["api_key"],
+    args["api_key_secret"],
+    args["access_token"],
+    args["access_token_secret"],
 )
 
-# Send the tweet
-# ===
-
-response = api.update_status(args["tweet"])
-
-print(
-    "Successfully submitted tweet "
-    f"https://twitter.com/{response.user.screen_name}/status/{response.id}"
-)
+print(f"Successfully submitted: {tweet_url}")

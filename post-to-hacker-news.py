@@ -2,34 +2,14 @@
 
 """
 Post an article to news.ycombinator.com ("hacker news")
-
-Copied and modified from David Bieber:
-https://davidbieber.com/snippets/2020-05-02-hackernews-submit/
 """
 
 # Standard library
 import argparse
-import time
 import os
-from html.parser import HTMLParser
 
-# Packages
-import requests
-from bs4 import BeautifulSoup
-
-
-# Classes
-# ===
-class FNIDExtractor(HTMLParser):
-    """
-    Extract the fnid from the submit form
-    """
-
-    fnid = None
-
-    def handle_starttag(self, tag, attrs):
-        if tag.lower() == "input" and ("name", "fnid") in attrs:
-            self.fnid = dict(attrs)["value"]
+# Local
+from posters import post_to_hacker_news
 
 
 # Parse arguments
@@ -51,55 +31,10 @@ if not args.get("password"):
     print("No password provided\n")
     exit(parser.print_help())
 
-
-# Login
+# Submit post
 # ===
-session = requests.Session()
-login_response = session.post(
-    "https://news.ycombinator.com/login",
-    data={
-        "acct": args["username"],
-        "pw": args["password"],
-    },
+post_url = post_to_hacker_news(
+    args["title"], args["link"], args["username"], args["password"]
 )
-login_response.raise_for_status()
-if "Bad login." in login_response.text:
-    raise Exception("Bad login")
-else:
-    print(f'Successfully logged in as {args["username"]}\n')
 
-
-# Get the CSRF token ("FNID")
-# ===
-time.sleep(1)
-f = FNIDExtractor()
-submit_response = session.get("https://news.ycombinator.com/submit")
-submit_response.raise_for_status()
-f.feed(submit_response.text)
-if not f.fnid:
-    raise Exception("Failed to extract fnid from submit form")
-else:
-    print(f"fnid successfully extracted: {f.fnid}\n")
-
-
-# Submit the post
-# ===
-time.sleep(2)
-post_response = session.post(
-    "https://news.ycombinator.com/r",
-    data={
-        "title": args["title"],
-        "url": args["link"],
-        "fnid": f.fnid,
-    },
-)
-post_response.raise_for_status()
-
-soup = BeautifulSoup(post_response.text, "html.parser")
-item_id = soup.select(
-    "table table tr:nth-child(2) td.subtext a:-soup-contains('discuss')"
-)[0].get("href")[8:]
-
-print(
-    f"Successfully submitted: https://news.ycombinator.com/item?id={item_id}\n"
-)
+print(f"Successfully submitted: {post_url}\n")
