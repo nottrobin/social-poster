@@ -1,5 +1,4 @@
 # Standard library
-import argparse
 import time
 import os
 from html.parser import HTMLParser
@@ -7,7 +6,13 @@ from html.parser import HTMLParser
 # Packages
 import tweepy
 import requests
+import mailchimp_marketing
 from bs4 import BeautifulSoup
+
+
+# Constants
+# ===
+MAILCHIMP_MAILING_LIST_ID = "8853044bbe"
 
 
 # Functions
@@ -111,5 +116,51 @@ def post_to_hacker_news(
     return f"https://news.ycombinator.com/item?id={item_id}"
 
 
-def post_to_mailing_list(title: str, description: str, url: str) -> bool:
-    return True
+def email_to_mailchimp_list(
+    title: str,
+    description: str,
+    url: str,
+    mailing_list_id: str = MAILCHIMP_MAILING_LIST_ID,
+    api_key: str = os.environ["MAILCHIMP_API_KEY"],
+) -> dict:
+    """
+    Send an email about the new post to the mailing list
+    using Mailchimp's API.
+    """
+
+    client = mailchimp_marketing.Client()
+    client.set_config({"api_key": api_key})
+
+    template = client.templates.create(
+        {
+            "name": "Today's template",
+            "html": (
+                "<code>"
+                "<p>Robin wrote a new post:</p>"
+                f"<p><strong>{ title }</strong></p>"
+                f"<p>{ description }</p>"
+                f'<p><a href="{ url }">Read it on robinwinslow.uk</a></p>'
+                "</code>"
+            ),
+        }
+    )
+
+    campaign = client.campaigns.create(
+        {
+            "type": "regular",
+            "recipients": {"list_id": mailing_list_id},
+            "settings": {
+                "subject_line": title,
+                "preview_text": description,
+                "title": title,
+                "from_name": "Robin Winslow",
+                "reply_to": "blog@robinwinslow.uk",
+                "auto_footer": False,
+                "template_id": template["id"],
+            },
+        }
+    )
+
+    client.campaigns.send(campaign["id"])
+
+    return campaign

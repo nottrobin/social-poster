@@ -11,7 +11,11 @@ share them and update their frontmatter accordingly
 
 import git
 import frontmatter
-from posters import post_to_hacker_news, post_to_twitter, post_to_mailing_list
+from posters import (
+    post_to_hacker_news,
+    post_to_twitter,
+    email_to_mailchimp_list,
+)
 
 # Setup git
 repo = git.Repo(search_parent_directories=True)
@@ -58,10 +62,11 @@ for path in article_paths:
         print(f"- Posted to Twitter: {article['tweet_url']}")
         additions.append("tweet_url")
 
-    if "email_sent" not in article:
-        article["email_sent"] = post_to_mailing_list(title, description, url)
+    if "email_campaign_id" not in article:
+        campaign = email_to_mailchimp_list(title, description, url)
+        article["email_campaign_id"] = campaign["id"]
         print(f"- Email sent\n")
-        additions.append("email_sent")
+        additions.append("email_campaign_id")
 
     if additions:
         frontmatter.dump(article, path)

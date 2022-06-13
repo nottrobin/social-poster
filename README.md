@@ -85,3 +85,36 @@ optional arguments:
 $ ./post-to-twitter.py --tweet "hello worldly"
 Successfully submitted tweet https://twitter.com/nottrobin/status/1534172049517727746
 ```
+
+## Mailchimp email
+
+Send an email to a Mailchimp mailing list. This works with a free-tier account with Mailchimp, but you have to have set up the mailing list already in Mailchimp and pass the mailing list ID through to the script (or it will default to the ID for my own Mailchimp mailing list, which probably won't work for you).
+
+### Usage instructions
+
+``` bash
+$ ./email-to-mailing-list.py --help
+usage: email-to-mailing-list.py [-h] -t TITLE -d DESCRIPTION -u URL [-m MAILING_LIST_ID] [-k API_KEY]
+
+Post an article to hacker news
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TITLE, --title TITLE
+                        The article title
+  -d DESCRIPTION, --description DESCRIPTION
+                        A description of the article
+  -u URL, --url URL     URL to the article
+  -m MAILING_LIST_ID, --mailing-list-id MAILING_LIST_ID
+                        The ID for the Mailchimp mailing list to send to
+  -k API_KEY, --api-key API_KEY
+                        The mailchimp API key
+```
+
+### Sending an email
+
+``` bash
+$ ./email-to-mailing-list.py -t "Hate paywalls? 12ft.io is the answer" -d "After trying many ways to get around paywalls, I've landed on 12ft.io. It's simply awesome." -u "https://robinwinslow.uk/hate-paywalls-12ft.io-is-the-answer"
+Successfully send campaign 36d157dabf
+```
+
