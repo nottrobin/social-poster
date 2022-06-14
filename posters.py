@@ -136,9 +136,11 @@ def email_to_mailchimp_list(
             "name": "Today's template",
             "html": (
                 "<code>"
-                "<p>Robin wrote a new post:</p>"
+                "<p>I wrote a new post:</p>"
+                "<blockquote>"
                 f"<p><strong>{ title }</strong></p>"
                 f"<p>{ description }</p>"
+                "</blockquote>"
                 f'<p><a href="{ url }">Read it on robinwinslow.uk</a></p>'
                 "</code>"
             ),

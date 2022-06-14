@@ -65,7 +65,7 @@ for path in article_paths:
     if "email_campaign_id" not in article:
         campaign = email_to_mailchimp_list(title, description, url)
         article["email_campaign_id"] = campaign["id"]
-        print(f"- Email sent\n")
+        print(f"- Email campaign sent: {campaign['id']}\n")
         additions.append("email_campaign_id")
 
     if additions:
