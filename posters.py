@@ -137,7 +137,7 @@ def email_to_mailchimp_list(
             "html": (
                 "<code>"
                 "<p>I wrote a new post:</p>"
-                "<blockquote>"
+                '<blockquote style="margin-left: 0; padding-left: 1em; border-left: 1px solid lightgrey; font-style: italic">'
                 f"<p><strong>{ title }</strong></p>"
                 f"<p>{ description }</p>"
                 "</blockquote>"
