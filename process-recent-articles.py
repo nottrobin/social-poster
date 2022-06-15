@@ -17,6 +17,7 @@ from posters import (
     email_to_mailchimp_list,
 )
 
+
 # Setup git
 repo = git.Repo(search_parent_directories=True)
 
@@ -57,7 +58,7 @@ for path in article_paths:
 
     if "tweet_url" not in article:
         article["tweet_url"] = post_to_twitter(
-            f"I wrote an article!\n\n{description}\n\n{url}"
+            f"{description}\n\n(new post)\n\n{url}"
         )
         print(f"- Posted to Twitter: {article['tweet_url']}")
         additions.append("tweet_url")
@@ -70,8 +71,6 @@ for path in article_paths:
 
     if additions:
         frontmatter.dump(article, path)
-        repo.index.add(path)
-        repo.index.commit(f"Updated '{title}' with: {', '.join(additions)}")
-        print(f"- Commited with updated metadata")
+        print(f"- Updated metadata")
     else:
         print(f"- No updates necessary")
