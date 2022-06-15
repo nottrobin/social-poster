@@ -135,14 +135,14 @@ def email_to_mailchimp_list(
         {
             "name": "Today's template",
             "html": (
-                "<code>"
+                "<big style=\"font-family: 'dejavu Sans light', sans-serif\">"
                 "<p>I wrote a new post:</p>"
-                '<blockquote style="margin-left: 0; padding-left: 1em; border-left: 1px solid lightgrey; font-style: italic">'
+                '<blockquote style="margin-left: 0; padding-left: 1em; border-left: 1px solid lightgrey; font-style: italic; font-size: 1.3em">'
                 f"<p><strong>{ title }</strong></p>"
                 f"<p>{ description }</p>"
                 "</blockquote>"
-                f'<p><a href="{ url }">Read it on robinwinslow.uk</a></p>'
-                "</code>"
+                f'<p>Read it at <a href="{ url }">{ url.removeprefix("https://") }</a></p>'
+                "</big>"
             ),
         }
     )
