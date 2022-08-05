@@ -9,6 +9,9 @@ import requests
 import mailchimp_marketing
 from bs4 import BeautifulSoup
 
+# Local
+from tweetsplitter import tweet_splitter
+
 
 # Constants
 # ===
@@ -17,6 +20,27 @@ MAILCHIMP_MAILING_LIST_ID = "8853044bbe"
 
 # Functions
 # ===
+def get_tweets_from_article(article_url):
+    """
+    Given an article URL, get the contents of the article
+    and split it into a number of tweets
+    """
+
+    response = requests.get(article_url)
+
+    response.raise_for_status()
+
+    page_soup = BeautifulSoup(response.text, 'html.parser')
+
+    article_soup = page_soup.select_one("article")
+
+    article_text = article_soup.get_text().replace("\n", "\n\n").strip()
+
+    tweets = tweet_splitter(article_text, 0)
+
+    return tweets
+
+
 def post_to_twitter(
     tweet_text: str,
     api_key: str = os.environ["TWITTER_API_KEY"],
