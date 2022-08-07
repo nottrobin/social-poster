@@ -52,7 +52,7 @@ def post_to_dev_to(article_markdown: frontmatter.Post, url: str):
 
     prelude = (
         '<p><em><small>'
-        f'Originally published on my blog at <a href="{url}">{url}</a>.'
+        f'Originally published <a href="{url}">on my blog</a>.'
         '</small></em></p>'
     )
 
