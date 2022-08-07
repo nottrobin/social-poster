@@ -1,16 +1,22 @@
 # Standard library
 import time
 import os
+import copy
+import json
 from html.parser import HTMLParser
 
 # Packages
 import tweepy
 import requests
 import mailchimp_marketing
+import frontmatter
+from requests.adapters import HTTPAdapter, Retry
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 # Local
 from tweetsplitter import tweet_splitter
+from formatters import article_to_tweets
 
 
 # Constants
@@ -20,38 +26,76 @@ MAILCHIMP_MAILING_LIST_ID = "8853044bbe"
 
 # Functions
 # ===
-def get_tweets_from_article(article_url):
+def get_article_html(article_url: str):
     """
-    Given an article URL, get the contents of the article
-    and split it into a number of tweets
+    Given a URL, retry for a couple of minutes to
+    get the article (in case it's not published yet),
+    and then extract the HTML body from the article
     """
 
-    response = requests.get(article_url)
+    session = requests.Session()
+    retries = Retry(total=10, backoff_factor=1, status_forcelist=[ 404 ])
+    session.mount('https://', HTTPAdapter(max_retries=retries))
 
+    response = session.get(article_url)
     response.raise_for_status()
 
     page_soup = BeautifulSoup(response.text, 'html.parser')
 
-    article_soup = page_soup.select_one("article")
+    return page_soup.select_one("article")
 
-    article_text = article_soup.get_text().replace("\n", "\n\n").strip()
 
-    tweets = tweet_splitter(article_text, 0)
+def post_to_dev_to(article_markdown: frontmatter.Post, url: str):
+    """
+    Publish article to dev.to.
+    """
 
-    return tweets
+    prelude = (
+        '<p><em><small>'
+        f'Originally published on my blog at <a href="{url}">{url}</a>.'
+        '</small></em></p>'
+    )
+
+    response = requests.post(
+        "https://dev.to/api/articles",
+        headers={
+            "Content-Type": "application/json",
+            "api-key": os.environ["DEV_TO_API_KEY"],
+        },
+        data=json.dumps(
+            {
+                "article": {
+                    "title": article_markdown["title"],
+                    "tags": article_markdown.get("tags", []),
+                    "published": True,
+                    "series": "robinwinslow.uk",
+                    "canonical_url": url,
+                    "body_markdown": prelude + str(article_markdown)
+                }
+            }
+        )
+    )
+
+    return response.json()["url"]
 
 
 def post_to_twitter(
-    tweet_text: str,
-    api_key: str = os.environ["TWITTER_API_KEY"],
-    api_key_secret: str = os.environ["TWITTER_API_KEY_SECRET"],
-    access_token: str = os.environ["TWITTER_ACCESS_TOKEN"],
-    access_token_secret: str = os.environ["TWITTER_ACCESS_TOKEN_SECRET"],
+    title: str,
+    description: str,
+    url: str,
+    article_html: Tag
 ) -> str:
     """
-    Post a tweet with the API & access credentials provided to about the new
+    Post an article as a thread of tweets on Twitter
+    
+    Use the API & access credentials provided to about the new
     article at {url}, described in with {description}
     """
+
+    api_key = os.environ["TWITTER_API_KEY"],
+    api_key_secret = os.environ["TWITTER_API_KEY_SECRET"],
+    access_token = os.environ["TWITTER_ACCESS_TOKEN"],
+    access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"],
 
     api = tweepy.API(
         tweepy.OAuth1UserHandler(
@@ -62,7 +106,16 @@ def post_to_twitter(
         )
     )
 
-    response = api.update_status(tweet_text)
+    first_tweet = f"New article: {title}\n\n({description})\n\n{url}\n\n👇"
+
+    response = api.update_status(first_tweet)
+
+    for tweet in article_to_tweets(article_html):
+        api.update_status(
+            status=tweet,
+            in_reply_to_status_id=response.id,
+            auto_populate_reply_metadata=True
+        )
 
     return (
         f"https://twitter.com/{response.user.screen_name}/status/{response.id}"
@@ -72,8 +125,6 @@ def post_to_twitter(
 def post_to_hacker_news(
     title: str,
     url: str,
-    username: str,
-    password: str = os.environ["HN_PASSWORD"],
 ) -> str:
     """
     Post an article to Hacker News
@@ -81,6 +132,9 @@ def post_to_hacker_news(
     Copied and modified from David Bieber:
     https://davidbieber.com/snippets/2020-05-02-hackernews-submit/
     """
+
+    username = os.environ["HN_USERNAME"]
+    password = os.environ["HN_PASSWORD"]
 
     # Helper class for extracting the FNID from the submit form
     # ===

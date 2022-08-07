@@ -1,6 +1,5 @@
 def tweet_splitter(text, counter):
-    
-    char_limit = 280
+    char_limit = 270
     counter_char = 8 if counter else 0
     end = char_limit - counter_char
     tweets = []

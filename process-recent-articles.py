@@ -9,9 +9,17 @@ check if they have been shared to social media and email and if not,
 share them and update their frontmatter accordingly
 """
 
+# Packages
 import git
 import frontmatter
-from posters import (
+import requests
+from bs4 import BeautifulSoup, element
+from requests.adapters import HTTPAdapter, Retry
+
+# Local
+from apis import (
+    get_article_html,
+    post_to_dev_to,
     post_to_hacker_news,
     post_to_twitter,
     email_to_mailchimp_list,
@@ -38,39 +46,45 @@ print(f"Found {len(article_paths)} articles")
 for path in article_paths:
     print(f"\nProcessing {path}")
 
-    article = frontmatter.load(path)
+    article_markdown = frontmatter.load(path)
 
-    if not {"date", "title", "description"}.issubset(article.keys()):
+    if not {"date", "title", "description"}.issubset(article_markdown.keys()):
         # Skip articles without date, title or description
         print(f"- Missing some metadata - skipping")
         continue
 
     url_path = path.removeprefix("_articles/").removesuffix(".md")
-    url = f"https://robinwinslow.uk/{url_path}"
-    title = article["title"]
-    description = article.get("description", "")
+    article_url = f"https://robinwinslow.uk/{url_path}"
+    title = article_markdown["title"]
+    description = article_markdown.get("description", "")
     additions = []
 
-    if "hn_url" not in article:
-        article["hn_url"] = post_to_hacker_news(title, url, "nottrobin")
-        print(f"- Posted to HN: {article['hn_url']}")
+    # First, wait until article is definitely published
+    article_html = get_article_html(article_url)
+
+    if "dev_to_url" not in article_markdown:
+        article_markdown["dev_to_url"] = post_to_dev_to(article_markdown, article_url)
+        print(f"- Posted to dev.to: {article_markdown['dev_to_url']}")
+        additions.append("dev_to_url")
+
+    if "hn_url" not in article_markdown:
+        article_markdown["hn_url"] = post_to_hacker_news(title, article_url, "nottrobin")
+        print(f"- Posted to HN: {article_markdown['hn_url']}")
         additions.append("hn_url")
 
-    if "tweet_url" not in article:
-        article["tweet_url"] = post_to_twitter(
-            f"{description}\n\n(new post)\n\n{url}"
-        )
-        print(f"- Posted to Twitter: {article['tweet_url']}")
+    if "tweet_url" not in article_markdown:
+        article_markdown["tweet_url"] = post_to_twitter(article_html)
+        print(f"- Posted to Twitter: {article_markdown['tweet_url']}")
         additions.append("tweet_url")
 
-    if "email_campaign_id" not in article:
-        campaign = email_to_mailchimp_list(title, description, url)
-        article["email_campaign_id"] = campaign["id"]
+    if "email_campaign_id" not in article_markdown:
+        campaign = email_to_mailchimp_list(title, description, article_url)
+        article_markdown["email_campaign_id"] = campaign["id"]
         print(f"- Email campaign sent: {campaign['id']}\n")
         additions.append("email_campaign_id")
 
     if additions:
-        frontmatter.dump(article, path)
+        frontmatter.dump(article_markdown, path)
         print(f"- Updated metadata")
     else:
         print(f"- No updates necessary")
