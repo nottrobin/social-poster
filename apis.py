@@ -51,9 +51,7 @@ def post_to_dev_to(article_markdown: frontmatter.Post, url: str):
     """
 
     prelude = (
-        '<p><em><small>'
-        f'Originally published <a href="{url}">on my blog</a>.'
-        '</small></em></p>'
+        f'_Originally published [on my blog]({url})._\n\n'
     )
 
     response = requests.post(
