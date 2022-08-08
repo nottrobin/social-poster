@@ -11,6 +11,7 @@ share them and update their frontmatter accordingly
 
 # Standard library
 import os
+import time
 
 # Packages
 import git
@@ -53,8 +54,6 @@ print(f"Found {len(article_paths)} articles")
 
 # Send tweet, add tweet ID
 for path in article_paths:
-    print(f"\nWaiting 10 seconds to avoid rate limits")
-
     print(f"\nProcessing {path}")
 
     article_markdown = frontmatter.load(path)
@@ -112,3 +111,8 @@ for path in article_paths:
         print(f"- Email campaign sent: {campaign['id']}")
         frontmatter.dump(article_markdown, path)
         print(f"  > Updated metadata\n")
+
+    # If not last item, wait before the next item
+    if path != article_paths[-1]:
+        print(f"\nWaiting 35 seconds to avoid rate limits")
+        time.sleep(35)
