@@ -13,7 +13,13 @@ def article_to_tweets(article_soup: Tag) -> typing.List[str]:
     """
 
     article_text = article_soup.get_text().replace("\n", "\n\n").strip()
-    article_links = [a.attrs["href"] for a in article_soup.select("a[href]")]
+
+    article_links = []
+    for anchor in article_soup.select("a[href]"):
+        if anchor.attrs["href"].startswith("http"):
+            article_links.append(anchor.attrs["href"])
+        else:
+            article_links.append("https://robinwinslow.uk/" + anchor.attrs["href"])
 
     tweets = tweet_splitter(article_text, 0)
 
@@ -28,11 +34,3 @@ def article_to_tweets(article_soup: Tag) -> typing.List[str]:
         tweets[index] = tweet + f" [{index + 1}/{len(tweets)}]"
 
     return tweets
-
-
-def article_to_email(article_soup: Tag):
-    """
-    Turn article contents into an email
-    """
-
-    raise NotImplementedError

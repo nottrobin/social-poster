@@ -13,8 +13,10 @@ share them and update their frontmatter accordingly
 import git
 import frontmatter
 import requests
+from copy import copy
 from bs4 import BeautifulSoup, element
 from requests.adapters import HTTPAdapter, Retry
+from requests.exceptions import RequestException
 
 # Local
 from apis import (
@@ -57,34 +59,47 @@ for path in article_paths:
     article_url = f"https://robinwinslow.uk/{url_path}"
     title = article_markdown["title"]
     description = article_markdown.get("description", "")
-    additions = []
 
     # First, wait until article is definitely published
     article_html = get_article_html(article_url)
 
-    if "dev_to_url" not in article_markdown:
-        article_markdown["dev_to_url"] = post_to_dev_to(article_markdown, article_url)
-        print(f"- Posted to dev.to: {article_markdown['dev_to_url']}")
-        additions.append("dev_to_url")
+    if "cross_posts" in article_markdown:
+        cross_posts = article_markdown["cross_posts"]
+    else:
+        cross_posts = {}
+        article_markdown["cross_posts"] = cross_posts
 
-    if "hn_url" not in article_markdown:
-        article_markdown["hn_url"] = post_to_hacker_news(title, article_url, "nottrobin")
-        print(f"- Posted to HN: {article_markdown['hn_url']}")
-        additions.append("hn_url")
+    if "DEV" not in cross_posts:
+        try:
+            cross_posts["DEV"] = post_to_dev_to(article_markdown, article_url)
+        except RequestException as request_error:
+            response = request_error.response
+            print(f"- [ERROR]: {response.status_code} - {response.text}")
+        else:
+            print(f"- Posted to DEV: {cross_posts['DEV']}")
+            frontmatter.dump(article_markdown, path)
+            print(f"  > Updated metadata")
 
-    if "tweet_url" not in article_markdown:
-        article_markdown["tweet_url"] = post_to_twitter(article_html)
-        print(f"- Posted to Twitter: {article_markdown['tweet_url']}")
-        additions.append("tweet_url")
+    if "Hacker News" not in cross_posts:
+        try:
+            cross_posts["Hacker News"] = post_to_hacker_news(title, article_url)
+        except RequestException as request_error:
+            response = request_error.response
+            print(f"- [ERROR]: {response.status_code} - {response.text}")
+        else:
+            print(f"- Posted to HN: {cross_posts['Hacker News']}")
+            frontmatter.dump(article_markdown, path)
+            print(f"  > Updated metadata")
+
+    if "Twitter" not in cross_posts:
+        cross_posts["Twitter"] = post_to_twitter(title, description, article_url, article_html)
+        print(f"- Posted to Twitter: {cross_posts['Twitter']}")
+        frontmatter.dump(article_markdown, path)
+        print(f"  > Updated metadata")
 
     if "email_campaign_id" not in article_markdown:
-        campaign = email_to_mailchimp_list(title, description, article_url)
+        campaign = email_to_mailchimp_list(title, description, article_url, article_html)
         article_markdown["email_campaign_id"] = campaign["id"]
-        print(f"- Email campaign sent: {campaign['id']}\n")
-        additions.append("email_campaign_id")
-
-    if additions:
+        print(f"- Email campaign sent: {campaign['id']}")
         frontmatter.dump(article_markdown, path)
-        print(f"- Updated metadata")
-    else:
-        print(f"- No updates necessary")
+        print(f"  > Updated metadata\n")

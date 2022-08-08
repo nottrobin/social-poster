@@ -19,11 +19,6 @@ from tweetsplitter import tweet_splitter
 from formatters import article_to_tweets
 
 
-# Constants
-# ===
-MAILCHIMP_MAILING_LIST_ID = "8853044bbe"
-
-
 # Functions
 # ===
 def get_article_html(article_url: str):
@@ -42,7 +37,9 @@ def get_article_html(article_url: str):
 
     page_soup = BeautifulSoup(response.text, 'html.parser')
 
-    return page_soup.select_one("article")
+    article = page_soup.select_one("article")
+
+    return article
 
 
 def post_to_dev_to(article_markdown: frontmatter.Post, url: str):
@@ -66,13 +63,14 @@ def post_to_dev_to(article_markdown: frontmatter.Post, url: str):
                     "title": article_markdown["title"],
                     "tags": article_markdown.get("tags", []),
                     "published": True,
-                    "series": "robinwinslow.uk",
                     "canonical_url": url,
                     "body_markdown": prelude + str(article_markdown)
                 }
             }
         )
     )
+
+    response.raise_for_status()
 
     return response.json()["url"]
 
@@ -90,10 +88,10 @@ def post_to_twitter(
     article at {url}, described in with {description}
     """
 
-    api_key = os.environ["TWITTER_API_KEY"],
-    api_key_secret = os.environ["TWITTER_API_KEY_SECRET"],
-    access_token = os.environ["TWITTER_ACCESS_TOKEN"],
-    access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"],
+    api_key = os.environ["TWITTER_API_KEY"]
+    api_key_secret = os.environ["TWITTER_API_KEY_SECRET"]
+    access_token = os.environ["TWITTER_ACCESS_TOKEN"]
+    access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
 
     api = tweepy.API(
         tweepy.OAuth1UserHandler(
@@ -106,17 +104,20 @@ def post_to_twitter(
 
     first_tweet = f"New article: {title}\n\n({description})\n\n{url}\n\n👇"
 
-    response = api.update_status(first_tweet)
+    previous_response = api.update_status(first_tweet)
+
+    first_tweet_id = previous_response.id
+    username = previous_response.user.screen_name
 
     for tweet in article_to_tweets(article_html):
-        api.update_status(
+        previous_response = api.update_status(
             status=tweet,
-            in_reply_to_status_id=response.id,
+            in_reply_to_status_id=previous_response.id,
             auto_populate_reply_metadata=True
         )
 
     return (
-        f"https://twitter.com/{response.user.screen_name}/status/{response.id}"
+        f"https://twitter.com/{username}/status/{first_tweet_id}"
     )
 
 
@@ -196,8 +197,7 @@ def email_to_mailchimp_list(
     title: str,
     description: str,
     url: str,
-    mailing_list_id: str = MAILCHIMP_MAILING_LIST_ID,
-    api_key: str = os.environ["MAILCHIMP_API_KEY"],
+    article_html: Tag,
 ) -> dict:
     """
     Send an email about the new post to the mailing list
@@ -205,20 +205,20 @@ def email_to_mailchimp_list(
     """
 
     client = mailchimp_marketing.Client()
-    client.set_config({"api_key": api_key})
+    client.set_config({"api_key": os.environ["MAILCHIMP_API_KEY"]})
 
     template = client.templates.create(
         {
             "name": "Today's template",
             "html": (
-                "<big style=\"font-family: 'dejavu Sans light', sans-serif\">"
-                "<p>I wrote a new post:</p>"
-                '<blockquote style="margin-left: 0; padding-left: 1em; border-left: 1px solid lightgrey; font-style: italic; font-size: 1.3em">'
-                f"<p><strong>{ title }</strong></p>"
-                f"<p>{ description }</p>"
-                "</blockquote>"
-                f'<p>Read it at <a href="{ url }">{ url.removeprefix("https://") }</a></p>'
-                "</big>"
+                f'<p>New post <a href="{ url }">{ url.removeprefix("https://") }</a>:</p>'
+                "<hr/>"
+                '<article style="max-width: 48em; padding: 0 2em; border-left: 1px solid #ccc; margin: 2em 0;">'
+                f"<h1>{ title }</h1>"
+                f"{ article_html.decode_contents() }"
+                "</article>"
+                "<hr/>"
+                '<p>Read all my posts at <a href="https://robinwinslow.uk">robinwinslow.uk</a>.'
             ),
         }
     )
@@ -226,7 +226,9 @@ def email_to_mailchimp_list(
     campaign = client.campaigns.create(
         {
             "type": "regular",
-            "recipients": {"list_id": mailing_list_id},
+            "recipients": {
+                "list_id": "8853044bbe",
+            },
             "settings": {
                 "subject_line": title,
                 "preview_text": description,
