@@ -53,6 +53,8 @@ print(f"Found {len(article_paths)} articles")
 
 # Send tweet, add tweet ID
 for path in article_paths:
+    print(f"\nWaiting 10 seconds to avoid rate limits")
+
     print(f"\nProcessing {path}")
 
     article_markdown = frontmatter.load(path)
