@@ -9,6 +9,9 @@ check if they have been shared to social media and email and if not,
 share them and update their frontmatter accordingly
 """
 
+# Standard library
+import os
+
 # Packages
 import git
 import frontmatter
@@ -35,11 +38,15 @@ repo = git.Repo(search_parent_directories=True)
 head_hash = repo.head.object.hexsha
 
 # Find articles in latest commit
-files = repo.head.object.stats.files
+files = repo.head.commit.stats.files
 article_paths = []
 
 for file in files:
-    if file.startswith("_articles/") and not file.startswith("_articles/_"):
+    if (
+        os.path.exists(file)
+        and file.startswith("_articles/")
+        and not file.startswith("_articles/_")
+    ):
         article_paths.append(file)
 
 print(f"Found {len(article_paths)} articles")
