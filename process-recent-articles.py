@@ -78,41 +78,45 @@ for path in article_paths:
         article_markdown["cross_posts"] = cross_posts
 
     if "DEV" not in cross_posts:
+        print("- Posting to dev.to", flush=True)
         try:
             cross_posts["DEV"] = post_to_dev_to(article_markdown, article_url)
         except RequestException as request_error:
             response = request_error.response
-            print(f"- [ERROR]: {response.status_code} - {response.text}")
+            print(f"  > [ERROR]: {response.status_code} - {response.text}")
         else:
-            print(f"- Posted to DEV: {cross_posts['DEV']}")
+            print(f"  > Posted to DEV: {cross_posts['DEV']}")
             frontmatter.dump(article_markdown, path)
             print(f"  > Updated metadata")
 
     if "Hacker News" not in cross_posts:
+        print("- Posting to Hacker News", flush=True)
         try:
             cross_posts["Hacker News"] = post_to_hacker_news(title, article_url)
         except RequestException as request_error:
             response = request_error.response
-            print(f"- [ERROR]: {response.status_code} - {response.text}")
+            print(f"  > [ERROR]: {response.status_code} - {response.text}", flush=True)
         else:
-            print(f"- Posted to HN: {cross_posts['Hacker News']}")
+            print(f"  > Posted to HN: {cross_posts['Hacker News']}")
             frontmatter.dump(article_markdown, path)
             print(f"  > Updated metadata")
 
     if "Twitter" not in cross_posts:
+        print("- Posting to Twitter", flush=True)
         cross_posts["Twitter"] = post_to_twitter(title, description, article_url, article_html)
-        print(f"- Posted to Twitter: {cross_posts['Twitter']}")
+        print(f"  > Posted to Twitter: {cross_posts['Twitter']}")
         frontmatter.dump(article_markdown, path)
-        print(f"  > Updated metadata")
+        print(f"  > Updated metadata", flush=True)
 
     if "email_campaign_id" not in article_markdown:
+        print("- Sending email", flush=True)
         campaign = email_to_mailchimp_list(title, description, article_url, article_html)
         article_markdown["email_campaign_id"] = campaign["id"]
-        print(f"- Email campaign sent: {campaign['id']}")
+        print(f"  > Email campaign sent: {campaign['id']}")
         frontmatter.dump(article_markdown, path)
-        print(f"  > Updated metadata\n")
+        print(f"  > Updated metadata", flush=True)
 
     # If not last item, wait before the next item
     if path != article_paths[-1]:
-        print(f"\nWaiting 35 seconds to avoid rate limits")
+        print(f"- Waiting 35 seconds to avoid rate limits", flush=True)
         time.sleep(35)
