@@ -68,6 +68,9 @@ for path in article_paths:
     title = article_markdown["title"]
     description = article_markdown.get("description", "")
 
+    dev_posts = 0
+    hn_posts = 0
+
     # First, wait until article is definitely published
     article_html = get_article_html(article_url)
 
@@ -78,6 +81,9 @@ for path in article_paths:
         article_markdown["cross_posts"] = cross_posts
 
     if "DEV" not in cross_posts:
+        if dev_posts > 0:
+            print(f"- Waiting 10 seconds to avoid rate limits", flush=True)
+
         print("- Posting to dev.to", flush=True)
         try:
             cross_posts["DEV"] = post_to_dev_to(article_markdown, article_url)
@@ -85,11 +91,15 @@ for path in article_paths:
             response = request_error.response
             print(f"  > [ERROR]: {response.status_code} - {response.text}")
         else:
+            dev_posts += 1
             print(f"  > Posted to DEV: {cross_posts['DEV']}")
             frontmatter.dump(article_markdown, path)
             print(f"  > Updated metadata")
 
     if "Hacker News" not in cross_posts:
+        if hn_posts > 0:
+            print(f"- Waiting 10 seconds to avoid rate limits", flush=True)
+
         print("- Posting to Hacker News", flush=True)
         try:
             cross_posts["Hacker News"] = post_to_hacker_news(title, article_url)
@@ -97,6 +107,7 @@ for path in article_paths:
             response = request_error.response
             print(f"  > [ERROR]: {response.status_code} - {response.text}", flush=True)
         else:
+            hn_posts += 1
             print(f"  > Posted to HN: {cross_posts['Hacker News']}")
             frontmatter.dump(article_markdown, path)
             print(f"  > Updated metadata")
@@ -116,7 +127,3 @@ for path in article_paths:
         frontmatter.dump(article_markdown, path)
         print(f"  > Updated metadata", flush=True)
 
-    # If not last item, wait before the next item
-    if path != article_paths[-1]:
-        print(f"- Waiting 35 seconds to avoid rate limits", flush=True)
-        time.sleep(35)
