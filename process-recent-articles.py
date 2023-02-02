@@ -112,12 +112,15 @@ for path in article_paths:
             frontmatter.dump(article_markdown, path)
             print(f"  > Updated metadata")
 
-    if "Twitter" not in cross_posts:
-        print("- Posting to Twitter", flush=True)
-        cross_posts["Twitter"] = post_to_twitter(title, description, article_url, article_html)
-        print(f"  > Posted to Twitter: {cross_posts['Twitter']}")
-        frontmatter.dump(article_markdown, path)
-        print(f"  > Updated metadata", flush=True)
+    # Twitter have hamstrung their API, so we can no longer expect this to succeed
+    # ===
+
+    # if "Twitter" not in cross_posts:
+    #     print("- Posting to Twitter", flush=True)
+    #     cross_posts["Twitter"] = post_to_twitter(title, description, article_url, article_html)
+    #     print(f"  > Posted to Twitter: {cross_posts['Twitter']}")
+    #     frontmatter.dump(article_markdown, path)
+    #     print(f"  > Updated metadata", flush=True)
 
     if "email_campaign_id" not in article_markdown:
         print("- Sending email", flush=True)
@@ -126,4 +129,3 @@ for path in article_paths:
         print(f"  > Email campaign sent: {campaign['id']}")
         frontmatter.dump(article_markdown, path)
         print(f"  > Updated metadata", flush=True)
-
